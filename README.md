@@ -1,6 +1,6 @@
-# Photo Print Layout
+# Pic Layout
 
-一个纯 H5 的照片排版工具，用于把手机照片按 4R 到 8R 的真实照片规格排到 A2/A3/A4/A5 画布上，并导出高 DPI PNG 给打印机。
+一个照片排版工具，用于把手机照片按 4R 到 8R 的真实照片规格排到 A2/A3/A4/A5 画布上，并导出高 DPI PNG 给打印机。
 
 ## 运行方式
 
@@ -33,12 +33,17 @@
 
 ## 尺寸参考
 
+### 画布(纸张)尺寸
 | 名称 | 尺寸 |
 | --- | --- |
 | A2 | 420mm x 594mm |
 | A3 | 297mm x 420mm |
 | A4 | 210mm x 297mm |
 | A5 | 148mm x 210mm |
+
+### 照片尺寸
+| 名称 | 尺寸 |
+| --- | --- |
 | 4R | 102mm x 152mm |
 | 5R | 127mm x 178mm |
 | 6R | 152mm x 203mm |
@@ -55,19 +60,19 @@
 
 ```bash
 cd /path/to/photo_print_layout
-python3 -m http.server 8080
+python3 -m http.server 9600
 ```
 
 同一局域网设备访问：
 
 ```text
-http://NAS的局域网IP:8080/
+http://NAS的局域网IP:9600/
 ```
 
 例如：
 
 ```text
-http://192.168.1.20:8080/
+http://192.168.1.20:9600/
 ```
 
 ### 方式二：Nginx 长期服务
@@ -75,25 +80,52 @@ http://192.168.1.20:8080/
 把项目复制到 NAS，例如：
 
 ```bash
-sudo mkdir -p /var/www/photo-print-layout
-sudo cp index.html styles.css app.js /var/www/photo-print-layout/
+sudo mkdir -p /volume1/docker/pic_layout/html
+sudo cp index.html styles.css app.js /volume1/docker/pic_layout/html
 ```
 
-新增 Nginx 配置：
+新增 Nginx 配置
+```bash
+sudo mkdir -p /volume1/docker/pic_layout/conf
+vi /volume1/docker/pic_layout/conf/default.conf
+```
 
 ```nginx
 server {
-    listen 8080;
-    server_name _;
+    listen 80 default_server;
+    server_name  pic_layout;
 
-    root /var/www/photo-print-layout;
-    index index.html;
+    root  /usr/share/nginx/html;
+    index  index.html index.htm;
 
     location / {
         try_files $uri $uri/ /index.html;
     }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
 }
 ```
+
+新建docker-compose.yaml
+```yaml
+version: '3'
+services:
+  pic_layout:
+    user: "0:0"
+    image: nginx:latest
+    container_name: pic_layout
+    ports:
+      - "9600:80"
+    volumes:
+      - /volume1/docker/pic_layout/html:/usr/share/nginx/html:rw
+      - /volume1/docker/pic_layout/conf/default.conf:/etc/nginx/conf.d/default.conf:rw
+    restart: unless-stopped
+```
+
+
 
 然后重载 Nginx：
 
