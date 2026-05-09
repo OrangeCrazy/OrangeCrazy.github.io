@@ -5,6 +5,8 @@
 
 ## 🚀 运行方式
 
+- **在线直接访问**：打开 [https://orangecrazy.github.io/](https://orangecrazy.github.io/) 即可使用已部署的排版工具。
+- **代码仓库 / Issue**：项目源码托管在 [OrangeCrazy/OrangeCrazy.github.io](https://github.com/OrangeCrazy/OrangeCrazy.github.io)，欢迎在仓库中提交 Issue 或改进建议。
 - **本地使用**：直接用浏览器打开 [index.html](index.html) 即可运行，不需要安装依赖，也不需要后端服务。
 - **局域网部署**：推荐使用 Caddy + Docker 部署在 NAS 或服务器上，方便多设备访问。
 
@@ -116,6 +118,18 @@ http://<NAS_IP>:9600/
 
 ### GitHub Pages
 
+当前项目已通过 GitHub Pages 部署，可直接访问：
+
+```text
+https://orangecrazy.github.io/
+```
+
+对应仓库地址：
+
+```text
+https://github.com/OrangeCrazy/OrangeCrazy.github.io
+```
+
 1. 新建一个 GitHub 仓库。
 2. 上传 [index.html](index.html), [styles.css](styles.css), [app.js](app.js), [README.md](README.md)。
 3. 进入仓库 `Settings` -> `Pages`。
@@ -142,4 +156,3 @@ http://<NAS_IP>:9600/
 - [ ] 优化装箱算法，支持优先旋转、按面积排序、混合尺寸铺满。
 - [ ] 增加打印安全区模板，适配具体打印机的不可打印边距。
 - [ ] 增加导出选项：带裁切线的预览版 vs 不带裁切线的正式打印版。
-```

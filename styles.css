@@ -172,6 +172,31 @@ button.danger-button:hover {
   min-width: 0;
 }
 
+.icon-link {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  text-decoration: none;
+}
+
+.icon-link:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: #eef4f4;
+}
+
+.icon-link svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 .language-field {
   display: flex;
   align-items: center;
