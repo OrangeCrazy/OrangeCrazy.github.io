@@ -51,6 +51,9 @@ const I18N = {
     exportCurrent: "导出当前画布 PNG",
     exportAll: "导出全部画布 PNG",
     hint: "左键或单指拖动照片内图像选取区域，滚轮或双指缩放。右键或长按照片可打开快捷菜单。",
+    debugToggle: "调试",
+    debugPanel: "调试信息",
+    debugEmpty: "暂无调试信息",
     language: "语言",
     zoom: "缩放",
     autoZoom: "自适应",
@@ -100,6 +103,9 @@ const I18N = {
     exportCurrent: "匯出目前畫布 PNG",
     exportAll: "匯出全部畫布 PNG",
     hint: "左鍵或單指拖動照片內圖像選取區域，滾輪或雙指縮放。右鍵或長按照片可開啟快捷選單。",
+    debugToggle: "調試",
+    debugPanel: "調試資訊",
+    debugEmpty: "暫無調試資訊",
     language: "語言",
     zoom: "縮放",
     autoZoom: "自適應",
@@ -149,6 +155,9 @@ const I18N = {
     exportCurrent: "Export Current PNG",
     exportAll: "Export All PNG",
     hint: "Drag inside a photo with mouse or one finger. Use wheel or pinch to zoom. Right-click or long-press for the shortcut menu.",
+    debugToggle: "Debug",
+    debugPanel: "Debug Info",
+    debugEmpty: "No debug messages yet",
     language: "Language",
     zoom: "Zoom",
     autoZoom: "Auto",
@@ -194,6 +203,9 @@ const els = {
   zoomInButton: document.getElementById("zoomInButton"),
   zoomAutoButton: document.getElementById("zoomAutoButton"),
   languageSelect: document.getElementById("languageSelect"),
+  debugToggle: document.getElementById("debugToggle"),
+  debugPanel: document.getElementById("debugPanel"),
+  debugLog: document.getElementById("debugLog"),
   pageTabs: document.getElementById("pageTabs"),
   status: document.getElementById("status"),
   contextMenu: document.getElementById("contextMenu"),
@@ -215,6 +227,8 @@ const state = {
   zoom: 1,
   lang: detectLanguage(),
   frameMoveMode: false,
+  debugEnabled: readStoredDebugEnabled(),
+  debugEvents: [],
 };
 
 function newPage() {
@@ -230,6 +244,22 @@ function detectLanguage() {
     return "zh-CN";
   }
   return "en";
+}
+
+function readStoredDebugEnabled() {
+  try {
+    return localStorage.getItem("picLayoutDebugEnabled") === "true";
+  } catch {
+    return false;
+  }
+}
+
+function storeDebugEnabled(enabled) {
+  try {
+    localStorage.setItem("picLayoutDebugEnabled", String(enabled));
+  } catch {
+    // Ignore storage failures, such as private browsing restrictions.
+  }
 }
 
 function t(key, params = {}) {
@@ -266,6 +296,44 @@ function applyLanguage() {
   syncSelectedControls();
   updateTabs();
   updateStatus();
+  updateDebugVisibility();
+  renderDebugLog();
+}
+
+function debugLog(message, data = {}) {
+  const time = new Date().toLocaleTimeString();
+  const detail = Object.keys(data).length ? ` ${JSON.stringify(data)}` : "";
+  state.debugEvents.unshift(`[${time}] ${message}${detail}`);
+  state.debugEvents = state.debugEvents.slice(0, 80);
+  if (state.debugEnabled) {
+    renderDebugLog();
+  }
+}
+
+function renderDebugLog() {
+  if (!els.debugLog) return;
+  els.debugLog.innerHTML = "";
+  const events = state.debugEvents.length ? state.debugEvents : [t("debugEmpty")];
+  for (const eventText of events) {
+    const item = document.createElement("div");
+    item.textContent = eventText;
+    els.debugLog.appendChild(item);
+  }
+}
+
+function updateDebugVisibility() {
+  if (!els.debugToggle || !els.debugPanel) return;
+  els.debugToggle.checked = state.debugEnabled;
+  els.debugPanel.hidden = !state.debugEnabled;
+  if (state.debugEnabled) {
+    renderDebugLog();
+  }
+}
+
+function setDebugEnabled(enabled) {
+  state.debugEnabled = enabled;
+  storeDebugEnabled(enabled);
+  updateDebugVisibility();
 }
 
 function mmToPx(mm, dpi = PREVIEW_DPI) {
@@ -711,6 +779,7 @@ function occupiedRectsForPage(page) {
 }
 
 function placeNewPhotos(photos, minPages = 1) {
+  debugLog("placing new photos", { count: photos.length, requestedMinPages: minPages, existingPages: state.pages.length });
   while (state.pages.length < minPages) {
     state.pages.push(newPage());
   }
@@ -729,15 +798,22 @@ function placeNewPhotos(photos, minPages = 1) {
       occupiedByPage.push([]);
       if (!placePhotoOnPage(photo, page, occupiedByPage[occupiedByPage.length - 1])) {
         forcePlacePhotoOnPage(photo, page, occupiedByPage[occupiedByPage.length - 1]);
+        debugLog("photo exceeded available page area; force placed", { name: photo.name, sizeKey: photo.sizeKey });
       }
     }
   }
+  forceAppendMissingPhotos(photos, "placeNewPhotos final check");
   const last = photos[photos.length - 1];
   if (last) {
     const pageIndex = state.pages.findIndex((page) => page.photos.includes(last));
     state.activePage = pageIndex >= 0 ? pageIndex : state.activePage;
     state.selectedId = last.id;
   }
+  debugLog("new photos placed", {
+    added: photos.length,
+    totalPages: state.pages.length,
+    totalPhotos: state.pages.reduce((sum, page) => sum + page.photos.length, 0),
+  });
   syncSelectedControls();
   draw();
 }
@@ -775,7 +851,9 @@ function chooseBatchSizeKey(count, pageCount) {
     const areaB = PHOTO_SIZES[b].widthMm * PHOTO_SIZES[b].heightMm;
     return areaB - areaA;
   });
-  return sizeKeys.find((key) => simulatedPagesNeeded(count, key) <= pageCount) || "4R";
+  const chosen = sizeKeys.find((key) => simulatedPagesNeeded(count, key) <= pageCount) || "4R";
+  debugLog("batch size selected", { count, requestedPages: pageCount, sizeKey: chosen, estimatedPages: simulatedPagesNeeded(count, chosen) });
+  return chosen;
 }
 
 function askBatchPageCount(count) {
@@ -846,6 +924,23 @@ function forcePlacePhotoOnPage(photo, page, occupied) {
   occupied.push({ xMm: photo.xMm, yMm: photo.yMm, widthMm: photo.widthMm, heightMm: photo.heightMm });
 }
 
+function photoExistsInPages(photo) {
+  return state.pages.some((page) => page.photos.includes(photo));
+}
+
+function forceAppendMissingPhotos(photos, reason) {
+  const missing = photos.filter((photo) => !photoExistsInPages(photo));
+  for (const photo of missing) {
+    const page = newPage();
+    state.pages.push(page);
+    const occupied = [];
+    forcePlacePhotoOnPage(photo, page, occupied);
+  }
+  if (missing.length) {
+    debugLog("forced missing photos back into layout", { reason, count: missing.length });
+  }
+}
+
 function clampFramePosition(photo) {
   const pageSize = pageSizeMm();
   const margin = Number(els.pageMargin.value) || 0;
@@ -864,6 +959,8 @@ function autoLayout(options = {}) {
     photoIndex,
   })));
   if (!allPhotos.length) return;
+  const originalPhotos = allPhotos.map((entry) => entry.photo);
+  debugLog("auto layout started", { photos: originalPhotos.length, keepSelection });
 
   const lockedEntries = allPhotos.filter((entry) => entry.photo.locked);
   const unlockedEntries = allPhotos.filter((entry) => !entry.photo.locked);
@@ -900,10 +997,12 @@ function autoLayout(options = {}) {
       occupiedByPage.push([]);
       if (!placePhotoOnPage(photo, page, occupiedByPage[occupiedByPage.length - 1])) {
         forcePlacePhotoOnPage(photo, page, occupiedByPage[occupiedByPage.length - 1]);
+        debugLog("auto layout force placed oversize photo", { name: photo.name, sizeKey: photo.sizeKey });
       }
     }
   }
 
+  forceAppendMissingPhotos(originalPhotos, "autoLayout final check");
   state.pages = state.pages.filter((page, index) => page.photos.length || index === 0);
   const selectedPageIndex = state.pages.findIndex((page) => page.photos.some((photo) => photo.id === oldActiveId));
   state.activePage = selectedPageIndex >= 0 ? selectedPageIndex : Math.min(state.activePage, state.pages.length - 1);

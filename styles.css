@@ -197,6 +197,27 @@ button.danger-button:hover {
   fill: currentColor;
 }
 
+.debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.debug-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 .language-field {
   display: flex;
   align-items: center;
@@ -302,6 +323,46 @@ button.active {
   text-align: right;
 }
 
+.floating-debug {
+  position: absolute;
+  left: clamp(10px, 1.4vw, 18px);
+  bottom: clamp(10px, 1.4vw, 18px);
+  z-index: 4;
+  width: min(460px, calc(100% - 36px));
+  max-height: min(48vh, 360px);
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(28, 36, 51, 0.16);
+}
+
+.floating-debug summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.debug-log {
+  display: grid;
+  gap: 6px;
+  max-height: calc(min(48vh, 360px) - 44px);
+  margin-top: 8px;
+  overflow: auto;
+  color: var(--muted);
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.debug-log div {
+  padding: 6px;
+  border-radius: 6px;
+  background: #f1f4f7;
+  word-break: break-word;
+}
+
 .context-menu {
   position: fixed;
   z-index: 10;
@@ -366,5 +427,11 @@ button.active {
     bottom: 10px;
     max-width: calc(100vw - 20px);
     flex-wrap: wrap;
+  }
+
+  .floating-debug {
+    left: 10px;
+    bottom: 74px;
+    width: calc(100vw - 20px);
   }
 }
